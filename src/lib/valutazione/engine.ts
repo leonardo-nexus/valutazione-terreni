@@ -132,13 +132,19 @@ function calcCosti(
 }
 
 // ---------- Residuale: pre-risk e risk-adjusted (terreno SEMPRE escluso dai costi) ----------
-function calcResiduale(input: InputValutazione, ricaviEconomici: number, costiEsclusoTerreno: number, perditaAttesa: number) {
-  const { margineProm, premioRischio } = input.assunzioni
+function calcResiduale(input: InputValutazione, ricaviNetti: number, costiEsclusoTerreno: number, perditaAttesa: number) {
+  const { margineProm, premioRischio, riskMode } = input.assunzioni
   const prezzo = input.terreno.prezzoRichiesto
-  // Valore terreno = Ricavi − Costi(escluso terreno) − Margine − Premio. Il prezzo terreno NON entra qui.
-  const valoreMaxPreRisk =
-    ricaviEconomici - costiEsclusoTerreno - margineProm * ricaviEconomici - premioRischio * ricaviEconomici
-  const valoreMaxRiskAdjusted = valoreMaxPreRisk - perditaAttesa
+  // Base = ricavi NETTI (post haircut + sconto commerciale). Il prezzo terreno NON entra qui.
+  const margine = margineProm * ricaviNetti
+  // Scala leggibile: break-even (margine 0) ≥ pre-risk (con margine) ≥ risk-adjusted.
+  const valoreBreakEven = ricaviNetti - costiEsclusoTerreno
+  const valoreMaxPreRisk = valoreBreakEven - margine
+  // T3: UNA sola fonte di rischio (mai premio% + perdita attesa insieme).
+  const mode = riskMode ?? 'expected_loss'
+  const rischioApplicato =
+    mode === 'risk_premium' ? premioRischio * ricaviNetti : mode === 'expected_loss' ? perditaAttesa : 0
+  const valoreMaxRiskAdjusted = valoreMaxPreRisk - rischioApplicato
   const valoreMax = valoreMaxRiskAdjusted
   const delta = valoreMax - prezzo
   const scontoNecessario = prezzo ? Math.max(-delta / prezzo, 0) : 0
@@ -149,7 +155,7 @@ function calcResiduale(input: InputValutazione, ricaviEconomici: number, costiEs
   else if (prezzo <= valoreMax) verdetto = 'INVESTIBILE STATICO'
   else if (prezzo <= prezzoMax) verdetto = 'TRATTARE SOLO CON CONDIZIONI'
   else verdetto = 'PREZZO TROPPO ALTO'
-  return { valoreMaxPreRisk, valoreMaxRiskAdjusted, valoreMaxTerreno: valoreMax, delta, scontoNecessario, prezzoTrattativa, prezzoMax, verdetto }
+  return { valoreBreakEven, rischioApplicato, valoreMaxPreRisk, valoreMaxRiskAdjusted, valoreMaxTerreno: valoreMax, delta, scontoNecessario, prezzoTrattativa, prezzoMax, verdetto }
 }
 
 // ---------- Cash flow dinamico (trimestrale) ----------
@@ -204,12 +210,12 @@ function calcCashFlow(
 
 // ---------- Stress ----------
 function calcStress(input: InputValutazione, ricaviBase: number, costiBase: number): RisultatoValutazione['stress'] {
-  const { margineProm, premioRischio } = input.assunzioni
+  const { margineProm } = input.assunzioni
   const prezzo = input.terreno.prezzoRichiesto
   return input.scenari.map((s: ScenarioStress) => {
     const ricavi = ricaviBase * (1 + s.varPrezzo)
     const costi = costiBase * (1 + s.varCostoCostruzione + s.varCostiAltri)
-    const valoreMax = ricavi - costi - margineProm * ricavi - premioRischio * ricavi
+    const valoreMax = ricavi - costi - margineProm * ricavi
     const gap = valoreMax - prezzo
     return { nome: s.nome, valoreMaxTerreno: valoreMax, gap, verdetto: (valoreMax >= prezzo ? 'OK' : 'NO') as 'OK' | 'NO' }
   })
@@ -242,10 +248,10 @@ export function valuta(input: InputValutazione): RisultatoValutazione {
   // I costi escludono SEMPRE il prezzo del terreno (le % ricavi usano lo scenario realistico/stress).
   const costiCalc = calcCosti(input.costi, ricavi.mqVendibili, ricavi.mqTecho, mqSotterraneo, ricavi.ricaviStress, prezzoTerreno)
   const rischiM = calcRischi(input)
-  // Il valore terreno economico usa i ricavi PRUDENTI (post-haircut), non quelli stress.
-  const residuale = calcResiduale(input, ricavi.ricaviPrudenti, costiCalc.totale, rischiM.perditaAttesaPonderata)
+  // T3: il valore terreno usa i ricavi NETTI (post haircut + sconto commerciale).
+  const residuale = calcResiduale(input, ricavi.ricaviStress, costiCalc.totale, rischiM.perditaAttesaPonderata)
   const cashFlow = calcCashFlow(input, prezzoTerreno, costiCalc.totale, ricavi.ricaviStress)
-  const stress = calcStress(input, ricavi.ricaviPrudenti, costiCalc.totale)
+  const stress = calcStress(input, ricavi.ricaviStress, costiCalc.totale)
   const rischi = {
     perditaAttesaPonderata: rischiM.perditaAttesaPonderata,
     rischioLordoMassimo: rischiM.rischioLordoMassimo,
@@ -270,12 +276,13 @@ export function valuta(input: InputValutazione): RisultatoValutazione {
   }
 
   const A = input.assunzioni
+  const mode = A.riskMode ?? 'expected_loss'
   const audit = {
-    ricaviUsati: ricavi.ricaviPrudenti,
+    ricaviUsati: ricavi.ricaviStress,
     costiEsclusoTerreno: costiCalc.totale,
-    margine: A.margineProm * ricavi.ricaviPrudenti,
-    premio: A.premioRischio * ricavi.ricaviPrudenti,
-    perditaAttesa: rischiM.perditaAttesaPonderata,
+    margine: A.margineProm * ricavi.ricaviStress,
+    premio: mode === 'risk_premium' ? A.premioRischio * ricavi.ricaviStress : 0,
+    perditaAttesa: mode === 'expected_loss' ? rischiM.perditaAttesaPonderata : 0,
     preRisk: residuale.valoreMaxPreRisk,
     riskAdjusted: residuale.valoreMaxRiskAdjusted,
   }

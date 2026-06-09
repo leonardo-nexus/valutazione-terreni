@@ -37,6 +37,7 @@ export function getInputDefault(lang: Lang): InputValutazione {
     assunzioni: {
       margineProm: 0.2, premioRischio: 0.05, haircut: 0.1, scontoCommerciale: 0.03, preVenditaPct: 0.3,
       tassoSconto: 0.1, tassoFinanziamento: 0.06, equityMin: 0.3, tirMin: 0.16, costoCostruzioneMqVendibile: 2200,
+      riskMode: 'expected_loss',
     },
     checklist: [
       { key: 'nota', voce: t.doc[0], critico: true, stato: 'Mancante' },

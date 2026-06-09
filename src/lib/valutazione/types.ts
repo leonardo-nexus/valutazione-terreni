@@ -88,6 +88,8 @@ export interface InputValutazione {
     equityMin: number
     tirMin: number // soglia minima TIR annua
     costoCostruzioneMqVendibile: number // €/m²
+    // T3: una sola fonte di rischio attiva (no doppio conteggio premio + perdita attesa)
+    riskMode?: 'expected_loss' | 'risk_premium' | 'none'
   }
   checklist: VoceChecklist[]
   comparabili: Comparabile[]
@@ -145,6 +147,8 @@ export interface RisultatoValutazione {
     dettaglio: { voce: string; totale: number }[]
   }
   residuale: {
+    valoreBreakEven: number
+    rischioApplicato: number
     valoreMaxPreRisk: number
     valoreMaxRiskAdjusted: number
     valoreMaxTerreno: number
