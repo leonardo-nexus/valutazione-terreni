@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a0b;
+  --panel: #141315;
+  --panel-2: #1a181b;
+  --border: #2c2722;
+  --border-gold: #4a3f28;
+  --text: #ece7dc;
+  --muted: #9a958a;
+  --gold: #c9a24b;
+  --gold-bright: #e6c66b;
+  --gold-deep: #a87f2e;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-gold: var(--gold);
+  --color-panel: var(--panel);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-brand);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  min-height: 100%;
+  background-image:
+    radial-gradient(900px 500px at 80% -5%, rgba(201, 162, 75, 0.10), transparent 60%),
+    radial-gradient(700px 400px at 0% 0%, rgba(201, 162, 75, 0.05), transparent 55%);
+  background-attachment: fixed;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
+
+/* Componenti brand */
+.panel {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-radius: 0.9rem;
+}
+.section-title {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.brand-font { font-family: var(--font-brand), Georgia, serif; }
+
+.gold-btn {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
+  color: #1a1305;
+  font-weight: 700;
+  border-radius: 0.7rem;
+  box-shadow: 0 6px 20px -8px rgba(201, 162, 75, 0.5);
+  transition: filter 0.15s;
+}
+.gold-btn:hover { filter: brightness(1.07); }
+.gold-btn:disabled { opacity: 0.55; filter: none; }
+
+.field-input {
+  border: 1px solid var(--border);
+  background: #0f0e10;
+  color: var(--text);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field-input:focus { border-color: var(--gold); }
+
+.gold-link { color: var(--gold); }
+.gold-link:hover { text-decoration: underline; }
+
+@media print {
+  html, body {
+    background: #fff !important;
+    background-image: none !important;
+  }
+  .app-chrome { display: none !important; }
+}
