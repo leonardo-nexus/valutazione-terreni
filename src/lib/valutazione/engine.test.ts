@@ -102,3 +102,17 @@ test('gate <5 comparabili → NON VALUTABILE MERCATO', () => {
   const r = valuta(inp)
   assert.equal(r.verdettoFinale.esito, 'NON VALUTABILE MERCATO')
 })
+
+test('T3: nessun doppio conteggio del rischio + scala break-even ≥ pre-risk ≥ risk-adjusted', () => {
+  const base = scenarioRealistico()
+  base.assunzioni.riskMode = 'expected_loss'
+  const a = valuta(base)
+  // cambiando il premio rischio NON deve cambiare il valore (in modalità expected_loss)
+  const b = valuta({ ...base, assunzioni: { ...base.assunzioni, premioRischio: 0.20 } })
+  assert.equal(Math.round(a.residuale.valoreMaxTerreno), Math.round(b.residuale.valoreMaxTerreno))
+  // scala monotona
+  assert.ok(a.residuale.valoreBreakEven >= a.residuale.valoreMaxPreRisk)
+  assert.ok(a.residuale.valoreMaxPreRisk >= a.residuale.valoreMaxRiskAdjusted)
+  // l'audit non somma premio E perdita attesa: uno dei due è 0
+  assert.ok(a.audit.premio === 0 || a.audit.perditaAttesa === 0)
+})
