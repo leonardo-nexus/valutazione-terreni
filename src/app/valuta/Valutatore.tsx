@@ -272,9 +272,6 @@ export default function Valutatore({
                 <PercentField className={inputCls} value={inp.assunzioni[key]} onChange={(n) => patch((d) => (d.assunzioni[key] = n))} />
               </Field>
             ))}
-            <Field label={t.f.costoCostr} help="costoCostruzioneMqVendibile">
-              <NumberField className={inputCls} value={inp.assunzioni.costoCostruzioneMqVendibile} onChange={(n) => patch((d) => (d.assunzioni.costoCostruzioneMqVendibile = n))} />
-            </Field>
           </div>
         </Section>
 
